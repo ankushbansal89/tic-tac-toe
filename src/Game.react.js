@@ -1,38 +1,47 @@
-import React, { useState } from 'react';
+import React, { useReducer } from 'react';
 import Board from './Board.react';
 import { calculateWinner } from './CalculateWinner.lib';
+import { stepsReducer, SET_STEP, INCREMENT_STEP, xIsNextReducer, TOGGLE_X_IS_NEXT, SET_X_IS_NEXT, historyReducer, UPDATE_HISTORY } from './Reducers';
 
 export default function Game() {
-  const [history, setHistory] = useState([{
+  const [history, historyDispatch] = useReducer(historyReducer, [{
     squares: Array(9).fill(null)
   }]);
-  const [stepNumber, setStepNumber] = useState(0);
-  const [xIsNext, setXIsNext] = useState(true);
+  const [stepNumber, stepsDispatch] = useReducer(stepsReducer, 0);
+  const [xIsNext, xIsNextDispatch] = useReducer(xIsNextReducer, true);
 
-  function handleClick(i) {
-    const currHistory = history.slice(0, stepNumber + 1);
-    const current = currHistory[currHistory.length - 1];
-    const squares = current.squares.slice();
-    if (calculateWinner(squares) || squares[i]) {
+  function handleClick(index) {
+    const { squares } = history[stepNumber];
+    if (calculateWinner(squares) || squares[index]) {
       return;
     }
-    squares[i] = xIsNext ? "X" : "O";
-    setHistory(currHistory.concat(
-      {
-        squares: squares
-      }
-    ));
-    setStepNumber(currHistory.length);
-    setXIsNext(!xIsNext);
+    historyDispatch({
+      type: UPDATE_HISTORY,
+      stepNumber,
+      xIsNext,
+      index
+    })
+    stepsDispatch({
+      type: INCREMENT_STEP
+    });
+    xIsNextDispatch({
+      type: TOGGLE_X_IS_NEXT
+    });
   }
 
-  function jumpTo(step) {
-    setStepNumber(step);
-    setXIsNext((step % 2) === 0);
+  function jumpTo(stepNumber) {
+    stepsDispatch({
+      type: SET_STEP,
+      newStepNumber: stepNumber
+    });
+    xIsNextDispatch({
+      type: SET_X_IS_NEXT,
+      stepNumber
+    });
   }
 
-  const current = history[stepNumber];
-  const winner = calculateWinner(current.squares);
+  const squares = history[stepNumber].squares;
+  const winner = calculateWinner(squares);
   const moves = history.map((step, move) => {
     const desc = move ?
       'Go to move #' + move :
@@ -54,7 +63,7 @@ export default function Game() {
     <div className="game">
       <div className="game-board">
         <Board
-          squares={history[stepNumber].squares}
+          squares={squares}
           onClick={i => handleClick(i)}
         />
       </div>
